@@ -1,186 +1,150 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
-#include "keyboard.h"
+#include <string.h>
+
 #include "screen.h"
+#include "keyboard.h"
 #include "timer.h"
 
-#define MAX_MONSTERS 100
-
-typedef struct {
-    int x, y;
+typedef struct
+{
+    int x;
+    int y;
 } Entity;
 
-Entity player;
-Entity monsters[MAX_MONSTERS];
-int monster_count = 0;
-int game_over = 0;
+int incX = 1;
+int incY = 1;
 
-void init_game() {
-    screenInit(1);            
-    keyboardInit();           
-    srand(time(NULL));        
+static Entity hero = {34, 12};
+static Entity enemy = {11, 3};
 
-    player.x = (MINX + MAXX) / 2;
-    player.y = (MINY + MAXY) / 2;
-}
-
-void end_game() {
-    keyboardDestroy();        
-    screenDestroy();          
-}
-
-void handle_input() {
-    if (keyhit()) {
-        int key = readch();
-        switch (key) {
-            case 'w':
-            case 'W':
-                if (player.y > MINY + 1) player.y--;
-                break;
-            case 's':
-            case 'S':
-                if (player.y < MAXY - 1) player.y++;
-                break;
-            case 'a':
-            case 'A':
-                if (player.x > MINX + 1) player.x--;
-                break;
-            case 'd':
-            case 'D':
-                if (player.x < MAXX - 1) player.x++;
-                break;
-            case 'q':
-            case 'Q':
-                game_over = 1;
-                break;
-        }
+void printHero(int nextX, int nextY)
+{
+    if (nextX > (MAXX - strlen("H") - 1) || nextX < MINX + 1)
+    {
+        screenSetColor(CYAN, DARKGRAY);
+        screenGotoxy(hero.x, hero.y);
+        printf("H");
     }
-}
-
-void spawn_monster() {
-    if (monster_count < MAX_MONSTERS) {
-        Entity monster;
-        int side = rand() % 4;
-        switch (side) {
-            case 0: // Topo
-                monster.x = rand() % (MAXX - MINX - 2) + MINX + 1;
-                monster.y = MINY + 1;
-                break;
-            case 1: // Base
-                monster.x = rand() % (MAXX - MINX - 2) + MINX + 1;
-                monster.y = MAXY - 1;
-                break;
-            case 2: // Esquerda
-                monster.x = MINX + 1;
-                monster.y = rand() % (MAXY - MINY - 2) + MINY + 1;
-                break;
-            case 3: // Direita
-                monster.x = MAXX - 1;
-                monster.y = rand() % (MAXY - MINY - 2) + MINY + 1;
-                break;
-        }
-        monsters[monster_count++] = monster;
+    else if (nextY > (MAXY - strlen("H") - 1) || nextY < MINY + 1)
+    {
+        screenSetColor(CYAN, DARKGRAY);
+        screenGotoxy(hero.x, hero.y);
+        printf("H");
     }
-}
-
-void update_monsters() {
-    for (int i = 0; i < monster_count; i++) {
-        if (monsters[i].x < player.x) monsters[i].x++;
-        else if (monsters[i].x > player.x) monsters[i].x--;
-
-        if (monsters[i].y < player.y) monsters[i].y++;
-        else if (monsters[i].y > player.y) monsters[i].y--;
-    }
-}
-
-void check_collisions() {
-    for (int i = 0; i < monster_count; i++) {
-        if (monsters[i].x == player.x && monsters[i].y == player.y) {
-            game_over = 1;
-            break;
-        }
-    }
-}
-
-void draw_screen() {
-    static Entity prev_player = { -1, -1 };
-    static Entity prev_monsters[MAX_MONSTERS];
-    static int prev_monster_count = 0;
-
-    if (prev_player.x != -1 && prev_player.y != -1) {
-        screenGotoxy(prev_player.x, prev_player.y);
+    else
+    {
+        screenSetColor(CYAN, DARKGRAY);
+        screenGotoxy(hero.x, hero.y);
         printf(" ");
+        hero.x = nextX;
+        hero.y = nextY;
+        screenGotoxy(hero.x, hero.y);
+        printf("H");
     }
-
-    for (int i = 0; i < prev_monster_count; i++) {
-        screenGotoxy(prev_monsters[i].x, prev_monsters[i].y);
-        printf(" ");
-    }
-
-    screenGotoxy(player.x, player.y);
-    printf("@");
-
-    for (int i = 0; i < monster_count; i++) {
-        screenGotoxy(monsters[i].x, monsters[i].y);
-        printf("M");
-    }
-
-    prev_player = player;
-    for (int i = 0; i < monster_count; i++) {
-        prev_monsters[i] = monsters[i];
-    }
-    prev_monster_count = monster_count;
-
-    fflush(stdout);
 }
 
-int main() {
-    init_game();
+void moveHero(int direction)
+{
+    if (direction == 119)
+    {
+        printHero(hero.x, hero.y - incY);
+    }
+    else if (direction == 115)
+    {
+        printHero(hero.x, hero.y + incY);
+    }
+    else if (direction == 97)
+    {
+        printHero(hero.x - incX, hero.y);
+    }
+    else if (direction == 100)
+    {
+        printHero(hero.x + incX, hero.y);
+    }
+}
 
-    int game_tick = 100;          
-    int spawn_interval = 2000;   
-    int spawn_timer = 0;
+void printEnemy(int nextX, int nextY)
+{
+    screenSetColor(CYAN, DARKGRAY);
+    screenGotoxy(enemy.x, enemy.y);
+    printf(" ");
+    enemy.x = nextX;
+    enemy.y = nextY;
+    screenGotoxy(enemy.x, enemy.y);
+    printf("*");
+}
 
-    timerInit(game_tick);
+void moveEnemy()
+{
+    if (hero.x > enemy.x)
+    {
+        printEnemy(enemy.x + incX, enemy.y);
+    }
+    else if (hero.x < enemy.x)
+    {
+        printEnemy(enemy.x - incX, enemy.y);
+    }
+    if (hero.y > enemy.y)
+    {
+        printEnemy(enemy.x, enemy.y + 1);
+    }
+    else if (hero.y < enemy.y)
+    {
+        printEnemy(enemy.x, enemy.y - 1);
+    }
+}
 
-    while (!game_over) {
-        handle_input();
-        update_monsters();
-        check_collisions();
+void printScore(int score)
+{
+    screenSetColor(CYAN, DARKGRAY);
+    screenGotoxy(MINX + 2, MINY);
+    printf(" Pontuação: %d ", score);
+}
 
-        draw_screen();
+int main()
+{
+    static int ch = 0;
+    static int elapsedTimeCounter = 0;
+    static int score = 0;
+    static int enemySpeed = 10;
 
-        spawn_timer += game_tick;
-        if (spawn_timer >= spawn_interval) {
-            spawn_monster();
-            spawn_timer = 0;
+    screenInit(1);
+    keyboardInit();
+    timerInit(50);
 
-            if (spawn_interval > 500) {
-                spawn_interval -= 100;
+    printHero(hero.x, hero.y);
+    printEnemy(enemy.x, enemy.y);
+    printScore(score);
+    screenUpdate();
+
+    while (ch != 10)
+    {
+        if (keyhit())
+        {
+            ch = readch();
+            moveHero(ch);
+            screenUpdate();
+        }
+
+        if (timerTimeOver() == 1)
+        {
+            elapsedTimeCounter += 1;
+            if (elapsedTimeCounter % enemySpeed == 0)
+            {
+                moveEnemy();
+                screenUpdate();
+            }
+
+            if (elapsedTimeCounter % 20 == 0) {
+                score += 1;
+                printScore(score);
+                screenUpdate();
             }
         }
-
-        while (!timerTimeOver()) {
-            usleep(1000); //
-        }
-        timerDestroy();
-        timerInit(game_tick);
     }
 
-    screenClear();
-    screenDrawBorders();
-    screenGotoxy((MINX + MAXX) / 2 - 5, (MINY + MAXY) / 2);
-    printf("Game Over!");
-    fflush(stdout);
-
-    timerInit(2000);    
-    while (!timerTimeOver()) {
-        usleep(1000);
-    }
+    keyboardDestroy();
+    screenDestroy();
     timerDestroy();
 
-    end_game();
     return 0;
 }
