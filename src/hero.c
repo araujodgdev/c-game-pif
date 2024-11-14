@@ -5,28 +5,38 @@
 
 void printHero(Entity *hero, int nextX, int nextY)
 {
-    if (nextX > (MAXX - strlen("H") - 1) || nextX < MINX + 1)
+    if (nextX > (MAXX - strlen("🥷") - 1) || nextX < MINX + 1)
     {
-        screenSetColor(CYAN, DARKGRAY);
+        screenSetColor(YELLOW, DARKGRAY);
         screenGotoxy(hero->x, hero->y);
-        printf("H");
+        printf("🥷");
     }
-    else if (nextY > (MAXY - strlen("H") - 1) || nextY < MINY + 1)
+    else if (nextY > (MAXY - strlen("🥷") - 1) || nextY < MINY + 1)
     {
-        screenSetColor(CYAN, DARKGRAY);
+        screenSetColor(YELLOW, DARKGRAY);
         screenGotoxy(hero->x, hero->y);
-        printf("H");
+        printf("🥷");
     }
     else
     {
-        screenSetColor(CYAN, DARKGRAY);
+        screenSetColor(YELLOW, DARKGRAY);
         screenGotoxy(hero->x, hero->y);
         printf(" ");
         hero->x = nextX;
         hero->y = nextY;
         screenGotoxy(hero->x, hero->y);
-        printf("H");
+        printf("🥷");
     }
+}
+
+void printHeroLives(Entity *hero) {
+    screenSetColor(CYAN, DARKGRAY);
+    screenGotoxy(MAXX - 20, MINY);
+    printf(" Vidas: ");
+    for (int i = 0; i < hero->lives; i++) {
+        printf("❤️");
+    }
+    printf("  ");
 }
 
 void moveHero(Entity *hero, int direction)
